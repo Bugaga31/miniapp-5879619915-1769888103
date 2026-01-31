@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Video Player</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        body {
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 10px;
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #fff;
+        }
+
+        .subtitle {
+            color: #aaa;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        #videoPlayer {
+            width: 100%;
+            display: block;
+            max-height: 70vh;
+        }
+
+        .controls {
+            padding: 15px;
+            background: #1a1a1a;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: #333;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .control-btn:hover {
+            background: #444;
+        }
+
+        .control-btn:active {
+            transform: scale(0.98);
+        }
+
+        .control-btn.primary {
+            background: #2481cc;
+        }
+
+        .control-btn.primary:hover {
+            background: #2a91e0;
+        }
+
+        .progress-container {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #2481cc;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .time-display {
+            font-size: 13px;
+            color: #aaa;
+            white-space: nowrap;
+        }
+
+        .volume-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .volume-slider {
+            width: 80px;
+        }
+
+        .quality-selector {
+            margin-left: auto;
+        }
+
+        select {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .video-list {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .video-list h3 {
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .video-item {
+            background: #252525;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .video-item:hover {
+            background: #2d2d2d;
+        }
+
+        .video-item.active {
+            background: #1c3a5c;
+            border-left: 4px solid #2481cc;
+        }
+
+        .video-title {
+            font-weight: 500;
+        }
+
+        .video-duration {
+            color: #aaa;
+            font-size: 13px;
+        }
+
+        .error-message {
+            background: #5a1a1a;
+            color: #ff9c9c;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #aaa;
+        }
+
+        .fullscreen-btn {
+            margin-left: auto;
+        }
+
+        .history-section {
+            margin-top: 25px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .history-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #2d2d2d;
+            font-size: 14px;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .send-data-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2481cc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(36, 129, 204, 0.3);
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-btn {
+                justify-content: center;
+            }
+            
+            .progress-container {
+                order: -1;
+            }
+            
+            .quality-selector {
+                margin-left: 0;
+                align-self: center;
+            }
+            
+            .send-data-btn {
+                bottom: 10px;
+                right: 10px;
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 20px;
+            }
+            
+            .video-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Telegram Video Player</h1>
+            <p class="subtitle">Смотрите видео в высоком качестве с поддержкой субтитров</p>
+        </header>
+
+        <div class="error-message" id="errorMessage">
+            Ошибка загрузки видео. Пожалуйста, проверьте подключение к интернету или выберите другое видео.
+        </div>
+
+        <div class="video-container">
+            <video id="videoPlayer" preload="metadata" crossorigin="anonymous">
+                Ваш браузер не поддерживает видео тег.
+            </video>
+            
+            <div class="controls">
+                <button class="control-btn" id="playBtn">
+                    <span>▶️ Воспроизвести</span>
+                </button>
+                
+                <button class="control-btn" id="pauseBtn">
+                    <span>⏸️ Пауза</span>
+                </button>
+                
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="time-display">
+                        <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+                    </div>
+                </div>
+                
+                <div class="volume-container">
+                    <span>🔊</span>
+                    <input type="range" min="0" max="1" step="0.1" value="1" class="volume-slider" id="volumeSlider">
+                </div>
+                
+                <div class="quality-selector">
+                    <select id="qualitySelect">
+                        <option value="auto">Авто качество</option>
+                        <option value="360">360p</option>
+                        <option value="720">720p</option>
+                        <option value="1080">1080p</option>
+                    </select>
+                </div>
+                
+                <button class="control-btn fullscreen-btn" id="fullscreenBtn">
+                    <span>⛶ Полный экран</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="video-list">
+            <h3>📁 Доступные видео</h3>
+            <div class="video-item active" data-src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" data-duration="9:56">
+                <span class="video-title">Big Buck Bunny (пример)</span>
+                <span class="video-duration">9:56</span>
+            </div>
+            <div class="video-item" data-src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" data-duration="10:53">
+                <span class="video-title">Elephants Dream (пример)</span>
+                <span class="video-duration">10:53</span>
+            </div>
+            <div class="video-item" data-src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" data-duration="0:15">
+                <span class="video-title">For Bigger Blazes (пример)</span>
+                <span class="video-duration">0:15</span>
+            </div>
+        </div>
+
+        <div class="history-section">
+            <h3>📖 История просмотров</h3>
+            <div id="historyList">
+                <div class="loading">История просмотров будет отображаться здесь</div>
+            </div>
+        </div>
+    </div>
+
+    <button class="send-data-btn" id="sendDataBtn">📤 Отправить данные в Telegram</button>
+
+    <script>
+        // Инициализация Telegram WebApp
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        
+        // Установка тёмной темы
+        Telegram.WebApp.setHeaderColor('#1a1a1a');
+        Telegram.WebApp.setBackgroundColor('#0f0f0f');
+        
+        // Элементы DOM
+        const videoPlayer = document.getElementById('videoPlayer');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationEl = document.getElementById('duration');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const qualitySelect = document.getElementById('qualitySelect');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const videoItems = document.querySelectorAll('.video-item');
+        const historyList = document.getElementById('historyList');
+        const sendDataBtn = document.getElementById('sendDataBtn');
+        
+        // Кэш для видео
+        const videoCache = new Map();
+        let currentVideo = '';
+        let watchHistory = JSON.parse(localStorage.getItem('videoWatchHistory') || '[]');
+        
+        // Форматирование времени
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+        
+        // Обновление прогресса
+        function updateProgress() {
+            if (!videoPlayer.duration) return;
+            
+            const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+            progressFill.style.width = `${percent}%`;
+            currentTimeEl.textContent = formatTime(videoPlayer.currentTime);
+        }
+        
+        // Перемотка видео
+        function seekVideo(e) {
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            videoPlayer.currentTime = percent * videoPlayer.duration;
+        }
+        
+        // Загрузка видео
+        async function loadVideo(src, title) {
+            try {
+                errorMessage.style.display = 'none';
+                
+                // Проверка кэша
+                if (videoCache.has(src)) {
+                    videoPlayer.src = videoCache.get(src);
+                    console.log('Видео загружено из кэша');
+                } else {
+                    // Предзагрузка видео
+                    const response = await fetch(src, { mode: 'cors' });
+                    if (!response.ok) throw new Error('Ошибка загрузки видео');
+                    
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    videoCache.set(src, blobUrl);
+                    videoPlayer.src = blobUrl;
+                    console.log('Видео загружено и закэшировано');
+                }
+                
+                currentVideo = src;
+                
+                // Добавление в историю
+                addToHistory(title, src);
+                
+                // Установка активного элемента в списке
+                videoItems.forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.src === src) {
+                        item.classList.add('active');
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Ошибка загрузки видео:', error);
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = `Ошибка загрузки видео: ${error.message}`;
+            }
+        }
+        
+        // Добавление в историю просмотров
+        function addToHistory(title, src) {
+            const timestamp = new Date().toLocaleString('ru-RU');
+            const historyItem = { title, src, timestamp };
+            
+            // Удаление дубликатов
+            watchHistory = watchHistory.filter(item => item.src !== src);
+            
+            // Добавление в начало
+            watchHistory.unshift(historyItem);
+            
+            // Ограничение истории 10 записями
+            if (watchHistory.length > 10) {
+                watchHistory = watchHistory.slice(0, 10);
+            }
+            
+            // Сохранение в localStorage
+            localStorage.setItem('videoWatchHistory', JSON.stringify(watchHistory));
+            
+            // Обновление отображения
+            updateHistoryDisplay();
+        }
+        
+        // Обновление отображения истории
+        function updateHistoryDisplay() {
+            if (watchHistory.length === 0) {
+                historyList.innerHTML = '<div class="loading">История просмотров пуста</div>';
+                return;
+            }
+            
+            historyList.innerHTML = watchHistory.map(item => `
+                <div class="history-item">
+                    <strong>${item.title}</strong><br>
+                    <small>${item.timestamp}</small>
+                </div>
+            `).join('');
+        }
+        
+        // Обработка изменения качества
+        function handleQualityChange() {
+            // В реальном приложении здесь будет логика переключения между разными источниками видео
+            const quality = qualitySelect.value;
+            console.log(`Выбрано качество: ${quality}p`);
+            
+            // Здесь можно добавить логику для переключения на разные видеофайлы
+            // с разным качеством (например, разные URL для 360p, 720p, 1080p)
+        }
+        
+        // Отправка данных в Telegram
+        function sendDataToTelegram() {
+            const data = {
+                action: 'video_watched',
+                video: currentVideo,
+                currentTime: videoPlayer.currentTime,
+                duration: videoPlayer.duration,
+                historyCount: watchHistory.length,
+                timestamp: new Date().toISOString()
+            };
+            
+            Telegram.WebApp.sendData(JSON.stringify(data));
+            
+            // Показать уведомление
+            Telegram.WebApp.showAlert('Данные о просмотре отправлены в Telegram!');
+        }
+        
+        // Обработчики событий
+        videoPlayer.addEventListener('loadedmetadata', () => {
+            durationEl.textContent = formatTime(videoPlayer.duration);
+        });
+        
+        videoPlayer.addEventListener('timeupdate', updateProgress);
+        
+        videoPlayer.addEventListener('error', () => {
+            errorMessage.style.display = 'block';
+            errorMessage.textContent = 'Ошибка воспроизведения видео. Пожалуйста, выберите другое видео.';
+        });
+        
+        videoPlayer.addEventListener('waiting', () => {
+            console.log('Буферизация видео...');
+        });
+        
+        videoPlayer.addEventListener('playing', () => {
+            console.log('Воспроизведение началось');
+        });
+        
+        playBtn.addEventListener('click', () => {
+            videoPlayer.play();
+            playBtn.style.display = 'none';
+            pauseBtn.style.display = 'flex';
+        });
+        
+        pauseBtn.addEventListener('click', () => {
+            videoPlayer.pause();
+            playBtn.style.display = 'flex';
+            pauseBtn.style.display = 'none';
+        });
+        
+        progressBar.addEventListener('click', seekVideo);
+        
+        volumeSlider.addEventListener('input', () => {
+            videoPlayer.volume = volumeSlider.value;
+        });
+        
+        qualitySelect.addEventListener('change', handleQualityChange);
+        
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                if (videoPlayer.requestFullscreen) {
+                    videoPlayer.requestFullscreen();
+                } else if (videoPlayer.webkitRequestFullscreen) {
+                    videoPlayer.webkitRequestFullscreen();
+                } else if (videoPlayer.msRequestFullscreen) {
+                    videoPlayer.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        });
